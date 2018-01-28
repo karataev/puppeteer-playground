@@ -5,18 +5,33 @@ const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   console.log('Погода в Новосибирске');
+
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    const blockedResources = ['image', 'script', 'stylesheet', 'font', 'media'];
+    if (blockedResources.indexOf(request.resourceType()) > -1)
+      request.abort();
+    else
+      request.continue();
+  });
+
   await page.goto('http://pogoda.ngs.ru/');
 
   // await page.screenshot({
   //   path: 'weather-nsk.png'
   // });
 
-  const value = await page.evaluate(() => {
-    const elements = document.querySelectorAll('.value__main');
-    return elements[0].innerHTML;
+  const temp = await page.evaluate(() => {
+    const el = document.querySelector('.value__main');
+    return el.innerHTML;
   });
+  console.log(`Температура ${temp}°`);
 
-  console.log(value);
+  const tempFeelsLike = await page.evaluate(() => {
+    const el = document.querySelector('.value-feels_like__number');
+    return el.textContent;
+  });
+  console.log(`Ощущается как ${tempFeelsLike}`);
 
   await browser.close();
 })();
